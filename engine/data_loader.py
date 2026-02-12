@@ -3,46 +3,64 @@ import pandas as pd
 import time
 import streamlit as st
 
-# Perhatikan baris di bawah ini: harus ada exchange_id='kraken'
-def get_binance_data(symbol, timeframe, start_date, exchange_id='kraken'):
+def get_binance_data(symbol, timeframe, start_date):
+    """
+    Mengambil data OHLCV dari BINANCE.
+    """
     try:
-        # Inisialisasi Exchange (Default Kraken biar tembus server US)
-        if exchange_id == 'binance':
-            exchange = ccxt.binance({'enableRateLimit': True})
-        else:
-            # Force Kraken kalau tidak spesifik minta Binance
-            exchange = ccxt.kraken({'enableRateLimit': True})
-            
-            # Auto-convert simbol USDT ke USD (karena Kraken jarangan pair USDT)
-            if 'USDT' in symbol:
-                symbol = symbol.replace('USDT', 'USD')
-
-        since = exchange.parse8601(start_date)
-        all_candles = []
-        limit = 720 # Limit aman
+        # Inisialisasi Binance
+        exchange = ccxt.binance({
+            'enableRateLimit': True,
+            'timeout': 30000, 
+        })
         
-        # Loop download data
+        # Konversi Start Date
+        since = exchange.parse8601(start_date)
+        
+        all_candles = []
+        limit = 1000 
+        
+        # UI Progress
+        progress_text = f"Mengambil data {symbol} dari Binance..."
+        my_bar = st.progress(0, text=progress_text)
+        
         while True:
             try:
+                # Fetch Data
                 candles = exchange.fetch_ohlcv(symbol, timeframe, since, limit)
-                if not candles: break
+                
+                if not candles:
+                    break
                 
                 all_candles.extend(candles)
-                since = candles[-1][0] + 1
                 
-                if len(candles) < limit: break
+                # Update Next Timestamp
+                last_time = candles[-1][0]
+                since = last_time + 1
                 
-            except Exception:
-                time.sleep(1) # Rehat bentar kalau koneksi putus
+                # Update UI
+                my_bar.progress(min(len(all_candles) % 100, 100), text=f"⏳ Terkumpul: {len(all_candles)} candles...")
+                
+                if len(candles) < limit:
+                    break
+                    
+            except Exception as e:
+                time.sleep(1) # Retry logic
                 continue
-                
+        
+        my_bar.empty()
+
         if not all_candles:
+            st.error(f"❌ Data {symbol} kosong atau gagal diambil dari Binance.")
             return pd.DataFrame()
-            
+
+        # Format DataFrame
         df = pd.DataFrame(all_candles, columns=['Timestamp', 'Open', 'High', 'Low', 'Close', 'Volume'])
         df['Timestamp'] = pd.to_datetime(df['Timestamp'], unit='ms')
         df.set_index('Timestamp', inplace=True)
+        
         return df
 
     except Exception as e:
+        st.error(f"Error Data Loader: {str(e)}")
         return pd.DataFrame()
