@@ -16,7 +16,7 @@ load_dotenv()
 
 # --- 1. CONFIG ---
 st.set_page_config(page_title="Crypto Backtester + AI", layout="wide")
-st.title("📈 Binance Backtester + DeepSeek Chat 🤖")
+st.title("Crypto Backtester + DeepSeek Chat")
 
 # --- 2. SESSION STATE ---
 if "backtest_result" not in st.session_state:
@@ -47,7 +47,7 @@ st.sidebar.markdown("---")
 env_key = os.getenv("DEEPSEEK_API_KEY")
 deepseek_api_key = env_key if env_key else st.sidebar.text_input("DeepSeek API Key", type="password")
 
-run_btn = st.sidebar.button("Jalankan Backtest 🚀", type="primary")
+run_btn = st.sidebar.button("Jalankan Backtest", type="primary")
 
 # --- 4. FUNGSI AI CONTEXT ---
 def prepare_ai_context(results, strategy, symbol, tf):
@@ -97,19 +97,19 @@ if run_btn:
     
     try:
         # A. LOAD DATA
-        status.write("1️⃣ Mengambil data dari Binance...")
+        status.write("Mengambil data dari Binance...")
         start_str = f"{start_date} 00:00:00"
         df = get_binance_data(symbol, timeframe, start_str)
         
         if df.empty:
-            status.update(label="❌ Gagal ambil data", state="error")
+            status.update(label="Gagal ambil data", state="error")
             st.error("Cek koneksi atau simbol aset.")
         else:
             # B. FILTER & STRATEGI
             mask = (df.index <= pd.to_datetime(end_date) + pd.Timedelta(days=1))
             df_filtered = df.loc[mask]
             
-            status.write(f"2️⃣ Menerapkan strategi {strategy_option}...")
+            status.write(f"Menerapkan strategi {strategy_option}...")
             if strategy_option == "Simple MA Crossover": df_s = simple_ma.apply_strategy(df_filtered)
             elif strategy_option == "Bollinger Bands + RSI": df_s = bb_rsi.apply_strategy(df_filtered)
             elif strategy_option == "Smart Money Concept (SMC)": df_s = smc.apply_strategy(df_filtered)
@@ -117,7 +117,7 @@ if run_btn:
             elif strategy_option == "Supertrend (Trend Follower)": df_s = supertrend.apply_strategy(df_filtered)
             
             # C. RUN BACKTEST
-            status.write("3️⃣ Menghitung Profit/Loss...")
+            status.write("Menghitung Profit/Loss...")
             sl_dec = sl_input / 100 if use_sl else 0
             tp_dec = tp_input / 100 if use_tp else 0
             results = run_backtest(df_s, sl_pct=sl_dec, tp_pct=tp_dec)
@@ -142,10 +142,10 @@ if run_btn:
             st.session_state.messages.append({"role": "system", "content": system_prompt})
             st.session_state.messages.append({"role": "assistant", "content": "Analisis selesai! Data sudah saya baca. Ada yang mau ditanyakan soal hasil ini?"})
             
-            status.update(label="✅ Selesai!", state="complete", expanded=False)
+            status.update(label="Selesai!", state="complete", expanded=False)
 
     except Exception as e:
-        status.update(label="❌ Error", state="error")
+        status.update(label="Error", state="error")
         st.error(f"Terjadi kesalahan: {str(e)}")
         st.code(traceback.format_exc())
 
@@ -171,10 +171,10 @@ if st.session_state.backtest_result:
     
     # --- 7. CHAT AREA (DEEPSEEK) ---
     st.markdown("---")
-    st.subheader("💬 Diskusi dengan AI (DeepSeek)")
+    st.subheader("Diskusi dengan AI (DeepSeek)")
     
     if not deepseek_api_key:
-        st.warning("⚠️ Masukkan API Key DeepSeek di Sidebar untuk chat.")
+        st.warning("Masukkan API Key DeepSeek di Sidebar untuk chat.")
     else:
         # Tampilkan History
         for msg in st.session_state.messages:
